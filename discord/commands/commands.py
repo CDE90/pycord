@@ -31,7 +31,7 @@ import inspect
 import re
 import types
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Type, Union, TYPE_CHECKING
+from typing import Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, Union, TYPE_CHECKING
 
 from .context import ApplicationContext, AutocompleteContext
 from .errors import ApplicationCommandError, CheckFailure, ApplicationCommandInvokeError
@@ -61,8 +61,19 @@ __all__ = (
     "MessageCommand",
 )
 
+if TYPE_CHECKING: 
+    from typing_extensions import ParamSpec
+
+    from ..cog import Cog
+    from ..interactions import Interaction
+
+T = TypeVar('T')
+CogT = TypeVar('CogT', bound='Cog')
+
 if TYPE_CHECKING:
-    pass
+    P = ParamSpec('P')
+else:
+    P = TypeVar('P')
 
 def wrap_callback(coro):
     @functools.wraps(coro)
@@ -97,9 +108,9 @@ def hooked_wrapped_callback(command, ctx, coro):
 class _BaseCommand:
     __slots__ = ()
 
-class ApplicationCommand(_BaseCommand):
+class ApplicationCommand(_BaseCommand, Generic[CogT, P, T]):
     cog = None
-    
+
     def __repr__(self):
         return f"<discord.commands.{self.__class__.__name__} name={self.name}>"
 
@@ -143,8 +154,8 @@ class ApplicationCommand(_BaseCommand):
             # since we have no checks, then we just return True.
             return True
 
-        return await async_all(predicate(ctx) for predicate in predicates) # type: ignore    
-    
+        return await async_all(predicate(ctx) for predicate in predicates) # type: ignore
+
     async def dispatch_error(self, ctx: ApplicationContext, error: Exception) -> None:
         ctx.command_failed = True
         cog = self.cog
@@ -349,7 +360,7 @@ class SlashCommand(ApplicationCommand):
 
         .. note::
 
-            If this is not empty then default_permissions will be set to False.    
+            If this is not empty then default_permissions will be set to False.
 
     cog: Optional[:class:`Cog`]
         The cog that this command belongs to. ``None`` if there isn't one.
@@ -515,8 +526,13 @@ class SlashCommand(ApplicationCommand):
                 <= op.input_type.value
                 <= SlashCommandOptionType.role.value
             ):
-                name = "member" if op.input_type.name == "user" else op.input_type.name
-                arg = await get_or_fetch(ctx.guild, name, int(arg), default=int(arg))
+                if ctx.guild is None and op.input_type.name == "user":
+                    _data = ctx.interaction.data["resolved"]["users"][arg]
+                    _data["id"] = int(arg)
+                    arg = User(state=ctx.interaction._state, data=_data)
+                else:
+                    name = "member" if op.input_type.name == "user" else op.input_type.name
+                    arg = await get_or_fetch(ctx.guild, name, int(arg), default=int(arg))
 
             elif op.input_type == SlashCommandOptionType.mentionable:
                 arg_id = int(arg)
@@ -524,15 +540,15 @@ class SlashCommand(ApplicationCommand):
                 if arg is None:
                     arg = ctx.guild.get_role(arg_id) or arg_id
 
-            elif op.input_type == SlashCommandOptionType.string and op._converter is not None:
-                arg = await op._converter.convert(ctx, arg)
+            elif op.input_type == SlashCommandOptionType.string and (converter := op.converter) is not None:
+                arg = await converter.convert(converter, ctx, arg)
 
             kwargs[op._parameter_name] = arg
 
         for o in self.options:
             if o._parameter_name not in kwargs:
                 kwargs[o._parameter_name] = o.default
-        
+
         if self.cog is not None:
             await self.callback(self.cog, ctx, **kwargs)
         elif self.parent is not None and self.attached_to_group is True:
@@ -542,12 +558,12 @@ class SlashCommand(ApplicationCommand):
 
     async def invoke_autocomplete_callback(self, ctx: AutocompleteContext):
         values = { i.name: i.default for i in self.options }
-        
+
         for op in ctx.interaction.data.get("options", []):
             if op.get("focused", False):
                 option = find(lambda o: o.name == op["name"], self.options)
                 values.update({
-                    i["name"]:i["value"] 
+                    i["name"]:i["value"]
                     for i in ctx.interaction.data["options"]
                 })
                 ctx.command = self
@@ -621,11 +637,11 @@ class Option:
     ) -> None:
         self.name: Optional[str] = kwargs.pop("name", None)
         self.description = description or "No description provided"
-        self._converter = None
+        self.converter = None
         self.channel_types: List[SlashCommandOptionType] = kwargs.pop("channel_types", [])
         if not isinstance(input_type, SlashCommandOptionType):
             if hasattr(input_type, "convert"):
-                self._converter = input_type
+                self.converter = input_type
                 input_type = SlashCommandOptionType.string
             else:
                 _type = SlashCommandOptionType.from_datatype(input_type)
@@ -657,7 +673,7 @@ class Option:
 
         self.min_value: minmax_typehint = kwargs.pop("min_value", None)
         self.max_value: minmax_typehint = kwargs.pop("max_value", None)
-        
+
         if not (isinstance(self.min_value, minmax_types) or self.min_value is None):
             raise TypeError(f"Expected {minmax_typehint} for min_value, got \"{type(self.min_value).__name__}\"")
         if not (isinstance(self.max_value, minmax_types) or self.min_value is None):
@@ -877,11 +893,11 @@ class SlashCommandGroup(ApplicationCommand, Option):
         Returns
         --------
         :class:`SlashCommandGroup`
-            A new instance of this command.
+            A new instance of this command group.
         """
         ret = self.__class__(
-            self.name,
-            self.description,
+            name=self.name,
+            description=self.description,
             **self.__original_kwargs__,
         )
         return self._ensure_assignment_on_copy(ret)
@@ -930,6 +946,14 @@ class ContextMenuCommand(ApplicationCommand):
         The coroutine that is executed when the command is called.
     guild_ids: Optional[List[:class:`int`]]
         The ids of the guilds where this command will be registered.
+    default_permission: :class:`bool`
+        Whether the command is enabled by default when it is added to a guild.
+    permissions: List[:class:`.Permission`]
+        The permissions for this command.
+
+        .. note::
+            If this is not empty then default_permissions will be set to ``False``.
+
     cog: Optional[:class:`Cog`]
         The cog that this command belongs to. ``None`` if there isn't one.
     checks: List[Callable[[:class:`.ApplicationContext`], :class:`bool`]]
@@ -971,11 +995,13 @@ class ContextMenuCommand(ApplicationCommand):
         self.checks = checks
         self._before_invoke = None
         self._after_invoke = None
-        
+
         self.validate_parameters()
 
-        # Context Menu commands don't have permissions
-        self.permissions = []
+        self.default_permission = kwargs.get("default_permission", True)
+        self.permissions: List[Permission] = getattr(func, "__app_cmd_perms__", []) + kwargs.get("permissions", [])
+        if self.permissions and self.default_permission:
+            self.default_permission = False
 
         # Context Menu commands can't have parents
         self.parent = None
@@ -1013,12 +1039,12 @@ class ContextMenuCommand(ApplicationCommand):
             )
         except StopIteration:
             pass
-    
+
     def qualified_name(self):
         return self.name
 
     def to_dict(self) -> Dict[str, Union[str, int]]:
-        return {"name": self.name, "description": self.description, "type": self.type}
+        return {"name": self.name, "description": self.description, "type": self.type, "default_permission": self.default_permission}
 
 
 class UserCommand(ContextMenuCommand):
@@ -1052,7 +1078,7 @@ class UserCommand(ContextMenuCommand):
                 guild=ctx.interaction._state._get_guild(ctx.interaction.guild_id),
                 state=ctx.interaction._state,
             )
-        
+
         if self.cog is not None:
             await self.callback(self.cog, ctx, target)
         else:   
@@ -1118,12 +1144,12 @@ class MessageCommand(ContextMenuCommand):
             channel = ctx.interaction._state.add_dm_channel(data)
 
         target = Message(state=ctx.interaction._state, channel=channel, data=message)
-        
+
         if self.cog is not None:
             await self.callback(self.cog, ctx, target)
         else:
             await self.callback(ctx, target)
-    
+
     def copy(self):
         """Creates a copy of this command.
 
