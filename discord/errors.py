@@ -59,7 +59,7 @@ __all__ = (
     'ExtensionNotLoaded',
     'NoEntryPointError',
     'ExtensionFailed',
-    'ExtensionNotFound'
+    'ExtensionNotFound',
 )
 
 
@@ -268,7 +268,6 @@ class PrivilegedIntentsRequired(ClientException):
             'possible, then consider disabling the privileged intents instead.'
         )
         super().__init__(msg % shard_id)
-
 
 class InteractionResponded(ClientException):
     """Exception that's raised when sending another interaction response using

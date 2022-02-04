@@ -95,9 +95,69 @@ AutoShardedBot
 
 Application Commands
 ---------------------
-.. attributetable:: ApplicationCommandMixin
 
-.. autoclass:: ApplicationCommandMixin
+ApplicationCommand
+~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: ApplicationCommand
+
+.. autoclass:: ApplicationCommand
+    :members:
+
+SlashCommand
+~~~~~~~~~~~~~
+
+.. attributetable:: SlashCommand
+
+.. autoclass:: SlashCommand
+    :members:
+
+SlashCommandGroup
+~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: SlashCommandGroup
+
+.. autoclass:: SlashCommandGroup
+    :members:
+
+Option
+~~~~~~~
+
+.. attributetable:: Option
+
+.. autoclass:: Option
+    :members:
+
+OptionChoice
+~~~~~~~~~~~~~
+
+.. attributetable:: OptionChoice
+
+.. autoclass:: OptionChoice
+    :members:
+
+UserCommand
+~~~~~~~~~~~~
+
+.. attributetable:: UserCommand
+
+.. autoclass:: UserCommand
+    :members:
+
+MessageCommand
+~~~~~~~~~~~~~~~
+
+.. attributetable:: MessageCommand
+
+.. autoclass:: MessageCommand
+    :members:
+
+ApplicationContext
+~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: ApplicationContext
+
+.. autoclass:: ApplicationContext
     :members:
 
 Application Info
@@ -1161,6 +1221,83 @@ to handle it, which defaults to print a traceback and ignoring the exception.
     :param user: The user that joined or left.
     :type user: :class:`User`
 
+.. function:: on_scheduled_event_create(event)
+
+    Called when an :class:`ScheduledEvent` is created.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    :param event: The newly created scheduled event.
+    :type event: :class:`ScheduledEvent`
+
+.. function:: on_scheduled_event_update(before, after)
+
+    Called when a scheduled event is updated.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    :param before: The old scheduled event.
+    :type before: :class:`ScheduledEvent`
+    :param after: The updated scheduled event.
+    :type after: :class:`ScheduledEvent`
+
+.. function:: on_scheduled_event_delete(event)
+
+    Called when a scheduled event is deleted.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    :param event: The deleted scheduled event.
+    :type event: :class:`ScheduledEvent`
+
+.. function:: on_scheduled_event_user_add(event, member)
+
+    Called when a user subscribes to an event. If the member or event
+    is not found in the internal cache, then this event will not be
+    called. Consider using :func:`on_raw_scheduled_event_user_add` instead.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    :param event: The scheduled event subscribed to.
+    :type event: :class:`ScheduledEvent`
+    :param member: The member who subscribed.
+    :type member: :class:`Member`
+
+.. function:: on_raw_scheduled_event_user_add(payload)
+
+    Called when a user subscribes to an event. Unlike
+    :meth:`on_scheduled_event_user_add`, this will be called
+    regardless of the state of the internal cache.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    :param payload: The raw event payload data.
+    :type payload: :class:`RawScheduledEventSubscription`
+
+.. function:: on_scheduled_event_user_remove(event, member)
+
+    Called when a user unsubscribes to an event. If the member or event is
+    not found in the internal cache, then this event will not be called.
+    Consider using :func:`on_raw_scheduled_event_user_remove` instead.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    :param event: The scheduled event unsubscribed from.
+    :type event: :class:`ScheduledEvent`
+    :param member: The member who unsubscribed.
+    :type member: :class:`Member`
+
+.. function:: on_raw_scheduled_event_user_remove(payload)
+
+    Called when a user unsubscribes to an event. Unlike
+    :meth:`on_scheduled_event_user_remove`, this will be called
+    regardless of the state of the internal cache.
+
+    This requires :attr:`Intents.scheduled_events` to be enabled.
+
+    :param payload: The raw event payload data.
+    :type payload: :class:`RawScheduledEventSubscription`
+
 .. _discord-api-utils:
 
 Utility Functions
@@ -1206,6 +1343,47 @@ from being stringly typed in case the strings change in the future.
 
 All enumerations are subclasses of an internal class which mimics the behaviour
 of :class:`enum.Enum`.
+
+.. class:: SlashCommandOptionType
+
+    Specifies the input type of an option.
+
+    .. versionadded:: 2.0
+
+    .. attribute:: sub_command
+
+        A slash subcommand.
+    .. attribute:: sub_command_group
+
+        A slash command group.
+    .. attribute:: string
+
+        A string.
+    .. attribute:: integer
+
+        An integer.
+    .. attribute:: boolean
+
+        A boolean.
+    .. attribute:: user
+
+        A user from the current channel. This will be converted to an instance of :class:`.User` in private channels, else :class:`.Member`
+    .. attribute:: channel
+
+        A channel from the current guild.
+    .. attribute:: role
+
+        A role from the current guild.
+    .. attribute:: mentionable
+
+        A mentionable (user or role).
+    .. attribute:: number
+
+        A floating number.
+
+    .. attribute:: attachment
+
+        An attachment. Currently in beta.
 
 .. class:: ChannelType
 
@@ -2439,17 +2617,59 @@ of :class:`enum.Enum`.
 
         A scheduled event was created.
 
+        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which
+        was deleted.
+
+        Possible attributes for :class:`AuditLogDiff`:
+
+        - :attr:`~AuditLogDiff.name`
+        - :attr:`~AuditLogDiff.description`
+        - :attr:`~AuditLogDiff.channel`
+        - :attr:`~AuditLogDiff.privacy_level`
+        - :attr:`~AuditLogDiff.location`
+        - :attr:`~AuditLogDiff.status`
+        - :attr:`~AuditLogDiff.location_type`
+
         .. versionadded:: 2.0
         
     .. attribute:: scheduled_event_update
 
         A scheduled event was updated.
 
+        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which
+        was deleted.
+
+        Possible attributes for :class:`AuditLogDiff`:
+
+        - :attr:`~AuditLogDiff.name`
+        - :attr:`~AuditLogDiff.description`
+        - :attr:`~AuditLogDiff.channel`
+        - :attr:`~AuditLogDiff.privacy_level`
+        - :attr:`~AuditLogDiff.location`
+        - :attr:`~AuditLogDiff.status`
+        - :attr:`~AuditLogDiff.location_type`
+
         .. versionadded:: 2.0
         
     .. attribute:: scheduled_event_delete
 
         A scheduled event was deleted.
+
+        When this is the action, the type of :attr:`~AuditLogEntry.target` is
+        the :class:`ScheduledEvent` or :class:`Object` with the ID of the thread which
+        was deleted.
+
+        Possible attributes for :class:`AuditLogDiff`:
+
+        - :attr:`~AuditLogDiff.name`
+        - :attr:`~AuditLogDiff.description`
+        - :attr:`~AuditLogDiff.channel`
+        - :attr:`~AuditLogDiff.privacy_level`
+        - :attr:`~AuditLogDiff.location`
+        - :attr:`~AuditLogDiff.status`
+        - :attr:`~AuditLogDiff.location_type`
 
         .. versionadded:: 2.0
 
@@ -2467,6 +2687,7 @@ of :class:`enum.Enum`.
         - :attr:`~AuditLogDiff.archived`
         - :attr:`~AuditLogDiff.locked`
         - :attr:`~AuditLogDiff.auto_archive_duration`
+        - :attr:`~AuditLogDiff.invitable`
 
         .. versionadded:: 2.0
 
@@ -2484,6 +2705,7 @@ of :class:`enum.Enum`.
         - :attr:`~AuditLogDiff.archived`
         - :attr:`~AuditLogDiff.locked`
         - :attr:`~AuditLogDiff.auto_archive_duration`
+        - :attr:`~AuditLogDiff.invitable`
 
         .. versionadded:: 2.0
 
@@ -2501,6 +2723,7 @@ of :class:`enum.Enum`.
         - :attr:`~AuditLogDiff.archived`
         - :attr:`~AuditLogDiff.locked`
         - :attr:`~AuditLogDiff.auto_archive_duration`
+        - :attr:`~AuditLogDiff.invitable`
 
         .. versionadded:: 2.0
 
@@ -2650,7 +2873,9 @@ of :class:`enum.Enum`.
 
     .. attribute:: embedded_application
 
-        A stream invite that targets an embedded application.
+        A invite that targets an embedded application.
+
+        Note that your bot won't be verified if you provide users access to this
 
 .. class:: VideoQualityMode
 
@@ -2669,12 +2894,10 @@ of :class:`enum.Enum`.
 .. class:: StagePrivacyLevel
 
     Represents a stage instance's privacy level.
+    Stage event privacy levels can only have 1 possible value at the moment so
+    this shouldn't really be used.
 
     .. versionadded:: 2.0
-
-    .. attribute:: public
-
-        The stage instance can be joined by external users.
 
     .. attribute:: closed
 
@@ -2730,6 +2953,14 @@ of :class:`enum.Enum`.
 .. class:: EmbeddedActivity
 
     Represents an embedded activity application.
+
+    Some might be boost-only or gated.
+
+    .. warning::
+        
+        Discord said that they won't verify bots who gives access to embedded activities.
+
+        Read more here: https://discord.com/channels/613425648685547541/697236247739105340/901153332075315321.
 
     .. versionadded:: 2.0
 
@@ -2801,7 +3032,7 @@ of :class:`enum.Enum`.
         
         Represents the embedded application Ocho QA.
     
-    .. attribute:: pn_stagging
+    .. attribute:: poker_night_staging
 
         Represents the embedded application Poker Night Staging.
 
@@ -2809,7 +3040,7 @@ of :class:`enum.Enum`.
 
         Represents the embedded application Poker Night.
      
-    .. attribute:: poker_night
+    .. attribute:: poker_night_qa
 
         Represents the embedded application Poker QA.
     
@@ -2848,8 +3079,61 @@ of :class:`enum.Enum`.
     .. attribute:: youtube_together
 
         Represents the embedded application Youtube Together.
-    
-    
+
+.. class:: ScheduledEventStatus
+
+    Represents the status of a scheduled event.
+
+    .. verssionadded:: 2.0
+
+    .. attribute:: scheduled
+
+        The scheduled event hasn't started or been canceled yet.
+
+    .. attribute:: active
+
+        The scheduled event is in progress.
+
+    .. attribute:: completed
+
+        The scheduled event is over.
+
+    .. attribute:: canceled
+
+        The scheduled event has been canceled before it can start.
+
+    .. attribute:: cancelled
+
+        Alias to :attr:`canceled`.
+
+.. class:: ScheduledEventLocationType
+
+    Represents a scheduled event location type (otherwise known as the entity type on the API).
+
+    .. verssionadded:: 2.0
+
+    .. attribute:: stage_instance
+
+        Represents a scheduled event that is happening in a :class:`StageChannel`.
+
+    .. attribute:: voice
+
+        Represents a scheduled event that is happening in a :class:`VoiceChannel`.
+
+    .. attribute:: external
+
+        Represents a generic location as a :class:`str`.
+
+.. class:: ScheduledEventPrivacyLevel
+
+    Represents the privacy level of a scheduled event.
+    Scheduled event privacy levels can only have 1 possible value at the moment so
+    this shouldn't really be used.
+
+    .. attribute:: guild_only
+
+        Represents a scheduled event that is only available to members inside the guild.
+
 
 Async Iterator
 ----------------
@@ -3267,9 +3551,9 @@ AuditLogDiff
 
     .. attribute:: privacy_level
 
-        The privacy level of the stage instance.
+        The privacy level of the stage instance or scheduled event.
 
-        :type: :class:`StagePrivacyLevel`
+        :type: :class:`StagePrivacyLevel` or :class:`ScheduledEventPrivacyLevel`
 
     .. attribute:: roles
 
@@ -3498,6 +3782,12 @@ AuditLogDiff
         The default auto archive duration for newly created threads being changed.
 
         :type: :class:`int`
+
+    .. attribute:: invitable
+
+        Non-moderators can now add other non-moderators to this thread.
+
+        :type: :class:`bool`
 
 .. this is currently missing the following keys: reason and application_id
    I'm not sure how to about porting these
@@ -3770,6 +4060,16 @@ Guild
 
         :type: :class:`User`
 
+ScheduledEvent
+~~~~~~~~~~~~~~~
+
+.. attributestable:: ScheduledEvent
+
+.. autoclass:: ScheduledEvent()
+    :members:
+
+.. autoclass:: ScheduledEventLocation()
+    :members:
 
 Integration
 ~~~~~~~~~~~~
@@ -3811,6 +4111,14 @@ InteractionMessage
 .. attributetable:: InteractionMessage
 
 .. autoclass:: InteractionMessage()
+    :members:
+
+MessageInteraction
+~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: MessageInteraction
+
+.. autoclass:: MessageInteraction()
     :members:
 
 Member
@@ -4190,6 +4498,14 @@ RawThreadDeleteEvent
 .. autoclass:: RawThreadDeleteEvent()
     :members:
 
+RawScheduledEventSubscription
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: RawScheduledEventSubscription
+
+.. autoclass:: RawScheduledEventSubscription()
+    :members:
+
 PartialWebhookGuild
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -4444,6 +4760,80 @@ Select
 
 .. autofunction:: discord.ui.select
 
+Sink Core
+---------
+
+.. autoclass:: discord.sinks.Filters
+    :members:
+
+.. autoclass:: discord.sinks.Sink
+    :members:
+
+.. autoclass:: discord.sinks.AudioData
+    :members:
+
+.. autoclass:: discord.sinks.RawData
+    :members:
+
+
+Sinks
+-----
+
+.. autoclass:: discord.sinks.WaveSink
+    :members:
+
+.. autoclass:: discord.sinks.MP3Sink
+    :members:
+
+.. autoclass:: discord.sinks.MP4Sink
+    :members:
+
+.. autoclass:: discord.sinks.M4ASink
+    :members:
+
+.. autoclass:: discord.sinks.MKVSink
+    :members:
+
+.. autoclass:: discord.sinks.MKASink
+    :members:
+
+.. autoclass:: discord.sinks.OGGSink
+    :members:
+
+
+Sink Error Reference
+--------------------
+
+.. autoexception:: discord.sinks.WaveSinkError
+
+.. autoexception:: discord.sinks.MP3SinkError
+
+.. autoexception:: discord.sinks.MP4SinkError
+
+.. autoexception:: discord.sinks.M4ASinkError
+
+.. autoexception:: discord.sinks.MKVSinkError
+
+.. autoexception:: discord.sinks.MKASinkError
+
+.. autoexception:: discord.sinks.OGGSinkError
+
+Sink Exception Hierarchy
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. exception_hierarchy::
+
+    - :exc:`DiscordException`
+        - :exc:`SinkException`
+            - :exc:`RecordingException`
+            - :exc:`WaveSinkError`
+            - :exc:`MP3SinkError`
+            - :exc:`MP4SinkError`
+            - :exc:`M4ASinkError`
+            - :exc:`MKVSinkError`
+            - :exc:`MKASinkError`
+            - :exc:`OGGSinkError`
+
 
 Exceptions
 ------------
@@ -4491,6 +4881,7 @@ Exception Hierarchy
     - :exc:`Exception`
         - :exc:`DiscordException`
             - :exc:`ClientException`
+                - :exc:`RecordingException`
                 - :exc:`InvalidData`
                 - :exc:`InvalidArgument`
                 - :exc:`LoginFailure`
